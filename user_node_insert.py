@@ -6,11 +6,11 @@ print("Start")
 with driver.session() as session:
     session.run('''
                 CALL apoc.periodic.iterate("
-                CALL apoc.load.json('file:///tip.json') YIELD value RETURN value
+                CALL apoc.load.json('file:///user.json')
+                YIELD value RETURN value
                 ","
-                MATCH (b:Business{id:value.business_id})
                 MERGE (u:User{id:value.user_id})
-                MERGE (u)-[:TIP{date:value.date,compliment_count:value.compliment_count,text:value.text}]->(b)
-                ",{batchSize: 20000, iterateList: true});
+                SET u += apoc.map.clean(value, ['friends','user_id'],[0])
+                ",{batchSize: 100, iterateList: true});
                 ''')
 print("END")
