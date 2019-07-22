@@ -14,7 +14,7 @@ with driver.session() as session:
                 UNWIND categories as category
                 MERGE (c:Category{id:category})
                 MERGE (b)-[:IN_CATEGORY]->(c)
-                ",{batchSize: 10000, iterateList: true});
+                ",{batchSize: 100, iterateList: true});
                 ''')
 print("END")
 
