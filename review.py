@@ -1,20 +1,23 @@
 from neo4j import GraphDatabase
 import json
+from datetime import datetime
+import sys
 
 driver = GraphDatabase.driver("bolt://localhost:7687", auth=("neo4j", "neo"))
-print("Start")
+print("Start : review.py")
+now = datetime.now()
+print( now )
+sys.stdout.flush()
+
 with driver.session() as session:
     session.run('''
             CALL apoc.periodic.iterate("
             CALL apoc.load.json('file:///review.json')
             YIELD value RETURN value
             ","
-            MERGE (b:Business{id:value.business_id})
-            MERGE (u:User{id:value.user_id})
-            MERGE (r:Review{id:value.review_id})
-            MERGE (u)-[:WROTE]->(r)
-            MERGE (r)-[:REVIEWS]->(b)
-            SET r += apoc.map.clean(value, ['business_id','user_id','review_id','text'],[0])
-",{batchSize: 1000, iterateList: true});
+            match (u:User{id:value.user_id})-[:WROTE]->(r:Review)-[:REVIEWS]->(b:Business{id:value.business_id})
+            set r.business_id = value.business_id, r.user_id = value.user_id, r.review_id = value.review_id, r.text = value.text
+            return r
+",{batchSize: 50, iterateList: true});
                 ''')
-print("END")
+print("END : review.py")

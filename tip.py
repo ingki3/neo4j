@@ -1,8 +1,13 @@
 from neo4j import GraphDatabase
 import json
+from datetime import datetime
 
 driver = GraphDatabase.driver("bolt://localhost:7687", auth=("neo4j", "neo"))
 print("Start")
+
+now = datetime.now()
+print( now )
+
 with driver.session() as session:
     session.run('''
                 CALL apoc.periodic.iterate("
@@ -14,3 +19,5 @@ with driver.session() as session:
                 ",{batchSize: 20000, iterateList: true});
                 ''')
 print("END")
+now = datetime.now()
+print( now )

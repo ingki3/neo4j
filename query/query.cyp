@@ -96,3 +96,6 @@ With b.city as origin, b1.id as id, b1.name as name, b1.city as city, count(r) a
 Return id, city, name, count(r) as weight, toInteger(distance(point({ latitude:b.latitude, longitude:b.longitude }), point({ latitude:b1.latitude, longitude:b1.longitude }))/1000) as km
 Order by weight desc
 limit 10
+
+match (p:User)-[:WROTE]->(r:Review{id:'Q1sbwvVQXV2734tPgoKj4Q'})-[:REVIEWS]->(b:Business)
+return p.id, b.id, r.stars
