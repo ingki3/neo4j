@@ -99,3 +99,59 @@ limit 10
 
 match (p:User)-[:WROTE]->(r:Review{id:'Q1sbwvVQXV2734tPgoKj4Q'})-[:REVIEWS]->(b:Business)
 return p.id, b.id, r.stars
+
+
+match (n1:User{id:'2ROPwk1-AX2L4dr_F0FeRQ'})-[r:SIMILAR_REVIEWS]-(n2:User)
+with n1, n2 order by r.weight desc limit 10
+match (n2)-[v:VISITED]-(b)
+where not ((n1)-[:VISITED]-(b))
+return count(b)
+
+
+match (n1:User{id:'2ROPwk1-AX2L4dr_F0FeRQ'})-[r:SIMILAR_REVIEWS]-(n2:User)
+with n1, n2 order by r.weight desc limit 10
+match (n2)-[v:VISITED]-(b)
+where not ((n1)-[:VISITED]-(b))
+return b.id, b.name, count(b) as weight order by weight desc limit 10
+
+MATCH (b1:Business)-[v1:VISITED]-()
+with b1, avg(v1.stars) as avg_stars
+match (b1:Business) where avg_stars > 4
+return count(b1)
+
+MATCH (b1:Business)-[v1:VISITED]-()
+with b1, avg(v1.stars) as avg_stars, count(v1) as v
+match (b1:Business) where avg_stars > 3.7 and v > 3
+return count(b1)
+
+MATCH (b1)-[v1:VISITED]-()-[v2:VISITED]-(b2)
+WHERE b1.city = b2.city
+WITH b1,b2,count(*) as coop, collect(v1.stars) as s1, collect(v2.stars) as s2
+WITH b1,b2, coop, apoc.algo.cosineSimilarity(s1,s2) as cosineSimilarity WHERE cosineSimilarity > 0
+RETURN b1.name, b2.name, coop, cosineSimilarity order by coop DESC
+
+
+MATCH (b1:Business{id:"QXAEGFB4oINsVuTFxEYKFQ"})-[v1:VISITED]-()-[v2:VISITED]-(b2)
+WHERE b1.city = b2.city and b1.id > b2.id
+WITH b1,b2,count(*) as coop, collect(v1.stars) as s1, collect(v2.stars) as s2
+WITH b1,b2, coop, algo.similarity.pearson(s1,s2) as similarity WHERE similarity > 0
+RETURN b1.name, b2.name, coop, similarity order by coop DESC
+
+MATCH (b1:Business{id:"gnKjwL_1w79qoiV3IC_xQQ"})-[v1:VISITED]-()-[v2:VISITED]-(b2)
+WHERE b1.city = b2.city and b1.id > b2.id
+WITH b1,b2,count(*) as coop, algo.similarity.asVector(b1, v1.stars) AS p1Vector, algo.similarity.asVector(b2, v2.stars) AS p2Vector
+WITH b1,b2, coop, algo.similarity.pearson(p1Vector, p2Vector, {vectorType: "maps"}) AS similarity WHERE similarity > 0 and coop > 3
+RETURN b1.name, b2.name, coop, similarity order by similarity DESC
+
+
+MATCH (b1:Business)-[v1:VISITED]-()-[v2:VISITED]-(b2:Business)
+WHERE b1.state = b2.state and b1.id > b2.id
+WITH b1,b2,count(*) as coop, collect(v1.stars) as s1, collect(v2.stars) as s2 where coop > 3
+WITH b1,b2, coop, algo.similarity.pearson(s1, s2, {concurrency:6}) AS similarity where similarity > 0
+MERGE (b1)-[s:BUSINESS_SIMILARITY]-(b2) SET s.weight = similarity
+
+MATCH (b1:Business)-[v1:VISITED]-()-[v2:VISITED]-(b2:Business)
+WHERE b1.state = b2.state and b1.id > b2.id
+WITH b1,b2,count(*) as coop, collect(v1.stars) as s1, collect(v2.stars) as s2 where coop > 4
+WITH b1,b2, coop, algo.similarity.pearson(s1,s2) as similarity WHERE similarity > 0
+MERGE (b1)-[s:BUSINESS_SIMILARITY]-(b2) SET s.pearson_similarity = similarity, s.cooccurence = coop
